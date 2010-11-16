@@ -206,6 +206,8 @@ will be assumed as:
    [joe]
    name=Joseph
 
+Note that Config::IniFiles will also omit the fallback section header when
+outputing such configuration.
 
 =item I<-nocase> 0|1
 
@@ -320,6 +322,7 @@ sub new {
   my $self = bless {
 	default => '',
 	fallback =>undef,
+	fallback_used => 0,
 	imported =>undef,
 	v =>{},
 	cf => undef,
@@ -835,7 +838,7 @@ sub ReadConfig {
       @cmts = ();
     }
     elsif (($parm, $val) = /^\s*([^=]*?[^=\s])\s*=\s*(.*)$/) {	# new parameter
-		$sect = $self->{fallback}
+		do { $sect = $self->{fallback}; $self->{fallback_used}++ }
 			if !defined($sect) && defined($self->{fallback});
 		if (!defined $sect) {
 			CORE::push(@Config::IniFiles::errors, sprintf('%d: %s', $lineno,
@@ -1385,7 +1388,8 @@ sub OutputConfig {
                 print "$_$ors";
             }
         }
-        print "[$sect]$ors";
+        print "[$sect]$ors" 
+	    unless $self->{fallback_used} && $sect eq $self->{fallback};
         next unless ref $self->{v}{$sect} eq 'HASH';
 
         PARM:
